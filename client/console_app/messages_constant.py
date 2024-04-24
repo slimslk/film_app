@@ -21,9 +21,9 @@ LINE_DELIMITER = "-" * 200
 
 GREETING_MESSAGE = "Welcome to film recommendation"
 SEARCH_OR_DESCRIPTION_MESSAGE = (f"To view a list of the {BLUE}10{RESET} most popular queries,"
-                                 f" enter \"{YELLOW}\\queries{RESET}\" or \"{YELLOW}\\exit{RESET}\" to "
+                                 f" enter \"{YELLOW}/queries{RESET}\" or \"{YELLOW}/exit{RESET}\" to "
                                  f"to exit our application\n"
-                                 f"Enter \"{BLUE}\\search{RESET}\" to start film searching or enter "
+                                 f"Enter \"{BLUE}/search{RESET}\" to start film searching or enter "
                                  f"{BLUE}THE TITLE OF A MOVIE{RESET} from the list to display the movie description: ")
 FIND_FILMS_MESSAGE = "Found {color}{len}{reset} films with a similar {color_2}\"{inp}\"{reset} in the title"
 SELECT_SEARCH_CONDITION_MESSAGE = f"Please select a search condition from the list below"

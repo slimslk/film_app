@@ -57,7 +57,7 @@ class FilmSearchService:
                                 rating: float = -1,
                                 cast: str = "",
                                 year: int = 0,
-                                keyword: str = "", offset: int = 0):
+                                keyword: str = "", offset: int = 0) -> tuple[list[Film], int]:
         """
             The conditions should have the following construction:
             "title": str,

@@ -1,2 +1,20 @@
 23-04-2024 18:56:46 | MySqlDatasource.class | ERROR: Server start
 23-04-2024 18:56:46 | ConsoleSearchFilmApp | ERROR: Start
+24-04-2024 10:08:05 | MySqlDaoImpl  | ERROR: Connection close
+24-04-2024 10:36:26 | MySqlDaoImpl  | ERROR: 1146 (42S02): Table 'my_db_query.movies' doesn't exist
+24-04-2024 10:36:26 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:36:26 | MySqlDaoImpl  | ERROR: query_db connection close
+24-04-2024 10:38:26 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:38:26 | MySqlDaoImpl  | ERROR: query_db connection close
+24-04-2024 10:40:22 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:40:22 | MySqlDaoImpl  | ERROR: query_db connection close
+24-04-2024 10:42:09 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:42:09 | MySqlDaoImpl  | ERROR: query_db connection close
+24-04-2024 10:44:25 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:44:25 | MySqlDaoImpl  | ERROR: query_db connection close
+24-04-2024 10:44:43 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:44:43 | MySqlDaoImpl  | ERROR: query_db connection close
+24-04-2024 10:46:21 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:46:21 | MySqlDaoImpl  | ERROR: query_db connection close
+24-04-2024 10:49:46 | MySqlDaoImpl  | ERROR: film_db connection close
+24-04-2024 10:49:46 | MySqlDaoImpl  | ERROR: query_db connection close

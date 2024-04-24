@@ -1,5 +1,5 @@
 .venv
-.env
+server/.env
 .idea
 __pycache__
 temp

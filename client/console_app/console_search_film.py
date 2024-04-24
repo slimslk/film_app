@@ -2,9 +2,8 @@ import client.console_app.console_input_helper as helper
 import client.console_app.messages_constant as messages
 import client.console_app.console_output_helper as output_helper
 from client.console_app.console_app_logger import Logger
+from server.api.public_api import PublicApi
 from server.entity.film_model import Film
-from server.service.film_search_service import FilmSearchService
-from server.service.user_query_service import UserQueryService
 from enum import Enum
 
 
@@ -21,30 +20,29 @@ class Query(Enum):
 class ConsoleSearchFilmApp:
     __logger = Logger("ConsoleSearchFilmApp").logger
 
-    def __init__(self, user_query_service: UserQueryService, film_search_service: FilmSearchService):
-        self.__film_search_service = film_search_service
-        self.__user_query_service = user_query_service
+    def __init__(self, public_api: PublicApi):
+        self.__public_api = public_api
 
-    def main(self):
+    def start_app(self):
         while True:
             films = self.__greeting()
             if not self.__is_film_not_found(films):
                 exit()
             command = input(f"{messages.SEARCH_OR_DESCRIPTION_MESSAGE}").lower()
-            if command in ["\\quit", "\\exit", "\\stop"]:
+            if command in ["/quit", "/exit", "/stop"]:
                 print(messages.BYE_BYE_MESSAGE)
                 exit()
-            if command == "\\queries":
-                queries = self.__user_query_service.get_most_common_queries()
+            if command == "/queries":
+                queries = self.__public_api.get_most_common_queries()
                 output_helper.print_common_queries(queries)
                 continue
-            elif command == "\\search":
+            elif command == "/search":
                 self.__search_film()
                 continue
             else:
                 usr_input = helper.input_search_film(films, command)
                 if type(usr_input) is list:
-                    command = helper.input_film_title(usr_input)
+                    command = helper.input_film_title(usr_input, command)
                     if command == "main menu":
                         continue
 
@@ -72,32 +70,32 @@ class ConsoleSearchFilmApp:
         if len(queries) == 1:
             query, value = list(queries.items())[0]
             if query == "all":
-                films, count = self.__film_search_service.get_all_films()
+                films, count = self.__public_api.get_all_films()
                 return films, count
             elif query == Query.TITLE.value:
-                films, count = self.__film_search_service.get_film_by_title(value, page)
+                films, count = self.__public_api.get_film_by_title(value, page)
                 return films, count
             elif query == Query.GENRE.value:
-                films, count = self.__film_search_service.get_films_by_genre(value, page)
+                films, count = self.__public_api.get_films_by_genre(value, page)
                 return films, count
             elif query == Query.RATING.value:
-                films, count = self.__film_search_service.get_films_by_rating(value, page)
+                films, count = self.__public_api.get_films_by_rating(value, page)
                 return films, count
             elif query == Query.CAST.value:
-                films, count = self.__film_search_service.get_films_by_actor(value, page)
+                films, count = self.__public_api.get_films_by_actor(value, page)
                 return films, count
             elif query == Query.KEYWORD.value:
-                films, count = self.__film_search_service.get_films_by_keyword(value, page)
+                films, count = self.__public_api.get_films_by_keyword(value, page)
                 return films, count
             elif query == Query.YEAR.value:
-                films, count = self.__film_search_service.get_films_by_year(value, page)
+                films, count = self.__public_api.get_films_by_year(value, page)
                 return films, count
         if len(queries) > 1:
             # conditions = {}
             # for key, value in queries.items():
             #     if key in [e.value for e in Query]:
             #         conditions[key] = value
-            film, count = self.__film_search_service.get_films_by_conditions(**queries, offset=page)
+            film, count = self.__public_api.get_films_by_conditions(**queries, offset=page)
             return film, count
 
     def __greeting(self) -> list[Film]:
@@ -119,5 +117,3 @@ class ConsoleSearchFilmApp:
             print(f"{messages.RED}Films not found!{messages.RESET}. Try another query!")
             return False
         return True
-
-
