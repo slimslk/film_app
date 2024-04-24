@@ -2,11 +2,7 @@ from os import getenv
 from dotenv import load_dotenv
 import telebot
 
-from server.service.film_search_service import FilmSearchService
-from server.service.user_query_service import UserQueryService
-
-
-
+from server.api.public_api import PublicApi
 
 class TelegramSearchFilm:
     # __logger = Logger("ConsoleSearchFilmApp").logger
@@ -15,12 +11,12 @@ class TelegramSearchFilm:
     #     self.__film_search_service = film_search_service
     #     self.__user_query_service = user_query_service
 
-    def __init__(self):
+    def __init__(self, public_api: PublicApi):
         load_dotenv()
         self.bot: telebot.TeleBot = telebot.TeleBot("7064056325:AAFxjyT4jesAOrAsckY94hOAc_xk1P-LVQ0")
         self.init_commands()
 
-    def start(self):
+    def start_app(self):
         self.bot.infinity_polling()
 
     def init_commands(self):
