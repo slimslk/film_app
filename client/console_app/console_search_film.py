@@ -76,7 +76,7 @@ class ConsoleSearchFilmApp:
         if len(queries) == 1:
             query, value = list(queries.items())[0]
             if query == "all":
-                films, count = self.__public_api.get_all_films()
+                films, count = self.__public_api.get_all_films(page)
                 return films, count
             elif query == Query.TITLE.value:
                 films, count = self.__public_api.get_film_by_title(value, page)

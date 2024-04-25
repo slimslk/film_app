@@ -13,7 +13,7 @@ class FilmSearchService:
         self.__user_query_service = user_query_service
 
     def get_all_films(self, offset: int = 0) -> tuple[list[Film], int]:
-        film_data = self.__film_dao.get_films(offset)
+        film_data = self.__film_dao.get_films(page=offset)
         return FilmSearchService.__get_films_with_pages(film_data)
 
     def get_film_by_title(self, title: str, offset: int = 0) -> tuple[list[Film], int]:
@@ -78,7 +78,7 @@ class FilmSearchService:
     def __get_genres(genres: str) -> str:
         genre = ",".join(list(filter(lambda item: item in genres, GENRES_SET)))
         if not genre:
-            genre = "None"
+            genre = ""
         return genre
 
     @staticmethod

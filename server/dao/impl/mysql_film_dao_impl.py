@@ -4,6 +4,7 @@ from mysql.connector import Error as MySqlError
 from server import mysql_queries_constant as queries
 from server.dao.film_dao_interface import FilmDaoInterface
 from logger import Logger
+from server.cache.films_cache import cache
 
 
 class MySqlFilmDaoImpl(FilmDaoInterface):
@@ -12,30 +13,38 @@ class MySqlFilmDaoImpl(FilmDaoInterface):
     def __init__(self, connection: MySQLConnectionAbstract):
         self.__connection = connection
 
+    @cache(query="all")
     def get_films(self, page: int = 0) -> list[tuple]:
         return self.__execute_query(queries.GET_FILMS_QUERY, (page * queries.MAX_FILMS,))
 
+    @cache(query="title")
     def get_film_by_title(self, title: str, page: int = 0) -> list[tuple]:
         return self.__execute_query(queries.GET_FILMS_BY_TITLE_QUERY, (f"%{title}%", page * queries.MAX_FILMS))
 
+    @cache(query="genre")
     def get_films_by_genre(self, genre: str, page: int = 0) -> list[tuple]:
         return self.__execute_query(queries.GET_FILMS_BY_GENRE_QUERY, (f"%{genre}%", page * queries.MAX_FILMS))
 
+    @cache(query="rating")
     def get_films_by_rating(self, rating: float, page: int = 0) -> list[tuple]:
         return self.__execute_query(queries.GET_FILMS_BY_RATING_QUERY, (rating, page * queries.MAX_FILMS))
 
+    @cache(query="cast")
     def get_films_by_actor(self, actor_name: str, page: int = 0) -> list[tuple]:
         return self.__execute_query(queries.GET_FILMS_BY_ACTOR_NAME_QUERY,
                                     (f"%{actor_name}%", page * queries.MAX_FILMS))
 
+    @cache(query="keyword")
     def get_films_by_keyword(self, keyword: str, page: int = 0) -> list[tuple]:
         keyword = f"%{keyword}%"
         keywords = (keyword, keyword, keyword, keyword, keyword, page * queries.MAX_FILMS)
         return self.__execute_query(queries.GET_FILMS_BY_KEYWORD_QUERY, keywords)
 
+    @cache(query="year")
     def get_films_by_year(self, year: int, page: int = 0) -> list[tuple]:
         return self.__execute_query(queries.GET_FILMS_BY_YEAR_QUERY, (year, page * queries.MAX_FILMS))
 
+    @cache
     def get_films_by_mult_conditions(self,
                                      title: str = "",
                                      genre: str = "",

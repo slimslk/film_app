@@ -1,4 +1,3 @@
-from client.console_app.console_search_film import ConsoleSearchFilmApp
 from client.telegram_bot_app.tel_bot_app import TelegramSearchFilm
 from server.search_film_app import SearchFilmApp
 

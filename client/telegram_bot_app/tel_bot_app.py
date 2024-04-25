@@ -28,6 +28,7 @@ class TelegramSearchFilm:
             exit()
 
     def start_app(self):
+        self.__logger.info("Application started")
         try:
             self.bot.infinity_polling()
         except telebot.ExceptionHandler as err:
