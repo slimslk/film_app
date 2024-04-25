@@ -1,10 +1,12 @@
 import client.console_app.console_input_helper as helper
 import client.console_app.messages_constant as messages
 import client.console_app.console_output_helper as output_helper
-from client.console_app.console_app_logger import Logger
+# from client.console_app.console_app_logger import Logger
 from server.api.public_api import PublicApi
 from server.entity.film_model import Film
 from enum import Enum
+
+from logger import Logger
 
 
 class Query(Enum):
@@ -18,7 +20,7 @@ class Query(Enum):
 
 
 class ConsoleSearchFilmApp:
-    __logger = Logger("ConsoleSearchFilmApp").logger
+    __logger = Logger("ConsoleSearchFilmApp.class", "./logs/console_app_error.log").logger
 
     def __init__(self, public_api: PublicApi):
         self.__public_api = public_api
@@ -65,6 +67,10 @@ class ConsoleSearchFilmApp:
                     if page_number in [-1, -2]:
                         break
                     films, count = self.__get_films_by_query(cur_search_con, page_number)
+            else:
+                self.__print_film_list(films)
+                helper.input_film_page_or_film_title(films, count)
+                # raise NotImplementedError()
 
     def __get_films_by_query(self, queries: dict[str: str | int | float] = None, page: int = 0) -> tuple[list[Film], int]:
         if len(queries) == 1:

@@ -4,12 +4,12 @@ from mysql.connector.abstracts import MySQLConnectionAbstract
 from mysql.connector import Error as MySqlError
 
 from server.dao.user_query_dao_interface import UserQueryDaoInterface
-from server.util.logger import Logger
+from logger import Logger
 from server import mysql_queries_constant as queries
 
 
 class MySqlUserQueryDao(UserQueryDaoInterface):
-    __logger = Logger("MySqlUserRequestDao").logger
+    __logger = Logger("MySqlUserQueryDao.class", "./logs/server_app_error.log").logger
 
     def __init__(self, connection: MySQLConnectionAbstract):
         self.__connection = connection

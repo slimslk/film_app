@@ -2,7 +2,7 @@ from server.dao.film_dao_interface import FilmDaoInterface
 from server.entity.film_model import Film
 from server.service.user_query_service import UserQueryService
 from server.util.utils import Utils
-from server.mysql_queries_constant import MAX_FILMS
+from server.mysql_queries_constant import MAX_FILMS, GENRES_SET
 from math import ceil
 
 
@@ -22,10 +22,11 @@ class FilmSearchService:
             self.__user_query_service.insert_user_query(title=title)
         return FilmSearchService.__get_films_with_pages(film_data)
 
-    def get_films_by_genre(self, genre: str, offset: int = 0) -> tuple[list[Film], int]:
-        film_data = self.__film_dao.get_films_by_genre(genre, offset)
+    def get_films_by_genre(self, genres: str, offset: int = 0) -> tuple[list[Film], int]:
+        gnr = self.__get_genres(genres.lower())
+        film_data = self.__film_dao.get_films_by_genre(gnr, offset)
         if not offset:
-            self.__user_query_service.insert_user_query(genre=genre)
+            self.__user_query_service.insert_user_query(genre=gnr)
         return FilmSearchService.__get_films_with_pages(film_data)
 
     def get_films_by_rating(self, rating: float, offset: int = 0) -> tuple[list[Film], int]:
@@ -53,7 +54,7 @@ class FilmSearchService:
         return FilmSearchService.__get_films_with_pages(film_data)
 
     def get_films_by_conditions(self, title: str = "",
-                                genre: str = "",
+                                genres: str = "",
                                 rating: float = -1,
                                 cast: str = "",
                                 year: int = 0,
@@ -67,10 +68,18 @@ class FilmSearchService:
             "year": int,
             "keyword": str
             """
-        film_data = self.__film_dao.get_films_by_mult_conditions(title, genre, rating, cast, year, keyword, offset)
-        self.__user_query_service.insert_user_query(title=title, genre=genre, rating=rating,
+        gnr = self.__get_genres(genres.lower())
+        film_data = self.__film_dao.get_films_by_mult_conditions(title, gnr, rating, cast, year, keyword, offset)
+        self.__user_query_service.insert_user_query(title=title, genre=gnr, rating=rating,
                                                     cast=cast, year=year, keyword=keyword)
         return FilmSearchService.__get_films_with_pages(film_data)
+
+    @staticmethod
+    def __get_genres(genres: str) -> str:
+        genre = ",".join(list(filter(lambda item: item in genres, GENRES_SET)))
+        if not genre:
+            genre = "None"
+        return genre
 
     @staticmethod
     def __convert_film_data_to_films_list(film_data: list[tuple]) -> list[Film]:

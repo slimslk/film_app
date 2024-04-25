@@ -2,84 +2,240 @@ from os import getenv
 from dotenv import load_dotenv
 import telebot
 
+from client.telegram_bot_app.film_search_helper import FilmSearchHelper
+from client.telegram_bot_app.my_films_model import UserFilms
+from logger import Logger
 from server.api.public_api import PublicApi
+import client.telegram_bot_app.message_helper as msg_helper
+from server.entity.film_model import Film
+import client.telegram_bot_app.constants as constants
+
 
 class TelegramSearchFilm:
-    # __logger = Logger("ConsoleSearchFilmApp").logger
-
-    # def __init__(self, user_query_service: UserQueryService, film_search_service: FilmSearchService):
-    #     self.__film_search_service = film_search_service
-    #     self.__user_query_service = user_query_service
+    __logger = Logger("TelegramSearchFilm.class", "./logs/telegram_app_error.log").logger
 
     def __init__(self, public_api: PublicApi):
-        load_dotenv()
-        self.bot: telebot.TeleBot = telebot.TeleBot("7064056325:AAFxjyT4jesAOrAsckY94hOAc_xk1P-LVQ0")
-        self.init_commands()
+        try:
+            self.__public_api = public_api
+            load_dotenv("./client/telegram_bot_app/.env_tgbot")
+            bot_token = getenv("BOT_TOKEN")
+            self.bot: telebot.TeleBot = telebot.TeleBot(bot_token)
+            self.__film_helper = FilmSearchHelper(public_api)
+            self._my_films_dict: dict[int, UserFilms] = {}
+            self.init_commands()
+        except telebot.ExceptionHandler as err:
+            self.__logger.error(err)
+            exit()
 
     def start_app(self):
-        self.bot.infinity_polling()
+        try:
+            self.bot.infinity_polling()
+        except telebot.ExceptionHandler as err:
+            self.__logger.error(err)
+            exit()
 
     def init_commands(self):
         """Initialize methods to represent bot commands"""
-        self.help = self.bot.message_handler(commands=['help'])(self.help_command)
-        self.test = self.bot.message_handler(commands=['test'])(self.test_command)
-        self.stat = self.bot.message_handler(commands=["start"])(self.start_command)
+        self.start = self.bot.message_handler(commands=["start"])(self.start_command)
+        self.popular_queries = self.bot.message_handler(commands=["queries"])(self.send_popular_queries)
         self.callback = self.bot.callback_query_handler(func=lambda callback: True)(self.callback_command)
-
-    def callback_command(self, callback):
-        if callback.data == "print_msg":
-            self.bot.send_photo(callback.message.chat.id, "https://m.media-amazon.com/images/M/MV5BNDMyODU3ODk3Ml5BMl5BanBnXkFtZTgwNDc1ODkwNjE@._V1_SY1000_SX677_AL_.jpg")
-
-    def help_command(self, message: telebot.types.Message):
-        markup = telebot.types.InlineKeyboardMarkup()
-        button1 = telebot.types.InlineKeyboardButton(text="Press me!", callback_data="print_msg")
-        button2 = telebot.types.InlineKeyboardButton(text="Don'tPress me!", callback_data="print_msg")
-        button3 = telebot.types.InlineKeyboardButton(text="One more time press me!!", callback_data="print_msg")
-        markup.row(button1, button2)
-        markup.row(button3)
-        self.bot.send_message(chat_id=message.chat.id, text="Help!", reply_markup=markup)
-
-    def test_command(self, message: telebot.types.Message):
-        self.bot.send_message(chat_id=message.chat.id, text=message.text)
+        self.msg_listner = self.bot.message_handler(func=lambda msg: True)(self.send_films_by_title)
 
     def start_command(self, message: telebot.types.Message):
-        markup = telebot.types.ReplyKeyboardMarkup()
-        button1 = telebot.types.KeyboardButton(text="help")
-        button2 = telebot.types.KeyboardButton(text="Don'tPress me!")
-        button3 = telebot.types.KeyboardButton(text="One more time press me!!")
-        markup.row(button1, button2)
-        markup.row(button3)
-        msg = "Hello there! How are you?"
-        self.bot.send_message(chat_id=message.chat.id, text=msg, reply_markup=markup)
-        self.bot.register_next_step_handler(message, callback=self.on_click)
+        chat_id = message.chat.id
+        markup = self.get_menu_buttons()
+        films, count = self.__film_helper.get_all_films()
+        user_films = UserFilms(user_id=message.chat.id, films=films)
+        self._my_films_dict[message.chat.id] = user_films
+        back_msg = msg_helper.get_films_simple_message(films)
+        self.bot.send_message(chat_id=chat_id, text=back_msg)
+        self.bot.send_message(chat_id=chat_id, text="Enter name of the film to view the movie description",
+                              reply_markup=markup)
 
-    def on_click(self, message):
-        self.bot.send_message(message.chat.id, f"/{message.text}")
+    def callback_command(self, callback):
+        if callback.data == "get_common_queries":
+            self.send_popular_queries(callback.message)
+        if callback.data == "main_menu":
+            self.start(callback.message)
+        if callback.data == "next_film":
+            user_films = self.__get_user_films_by_user_id(callback.message.chat.id)
+            self.show_film_description(user_films.films_desc, callback.message)
+        if callback.data == "search":
+            self.show_search_menu(callback.message)
+        if callback.data in constants.CONDITION_LIST:
+            condition = {callback.data}
+            self.__reset_user_films_data_and_take_values(callback.message, condition)
+        if callback.data == constants.GENRE_YEAR_CONDITION:
+            condition = {"genre", "year"}
+            self.__reset_user_films_data_and_take_values(callback.message, condition)
+        if callback.data in ["next_page", "last_page", "prev_page", "first_page"]:
+            self.__change_page_number(callback)
 
+    def __reset_user_films_data_and_take_values(self, message: telebot.types.Message, condition):
+        user_films = self.__get_user_films_by_user_id(message.chat.id)
+        user_films.curr_page = 0
+        user_films.last_condition = {}
+        self.take_multiple_conditions(message, conditions=condition)
 
-TelegramSearchFilm().start()
+    @staticmethod
+    def __is_year(year: str) -> bool:
+        return len(year) == 4 and year.isdecimal() and year[0] in ["1", "2"]
 
+    @staticmethod
+    def __is_rating(rating: str) -> bool:
+        return rating.replace(".", "", 1).isdigit() and 0.0 <= float(rating) <= 10.0
 
-# class TestBot:
-#
-#     def __init__(self) -> None:
-#         self.bot: telebot.TeleBot = telebot.TeleBot("7064056325:AAFxjyT4jesAOrAsckY94hOAc_xk1P-LVQ0")
-#         self.init_commands()  # this method initialize my commands
-#
-#     def start(self):
-#         self.bot.infinity_polling()
-#
-#     def init_commands(self):
-#         """Initialize methods to represent bot commands"""
-#         self.help = self.bot.message_handler(commands=['help'])(self.help_command)
-#         self.test = self.bot.message_handler(commands=['test'])(self.test_command)
-#
-#     # Commands bellow
-#     def help_command(self, message: telebot.types.Message):
-#         self.bot.send_message(chat_id=message.chat.id, text="Help!")
-#
-#     def test_command(self, message: telebot.types.Message):
-#         self.bot.send_message(chat_id=message.chat.id, text=message.text)
-#
-#
-# TestBot().start()
+    def take_multiple_conditions(self, message: telebot.types.Message, conditions: set[str]):
+        self.bot.clear_step_handler(message)
+        user_films = self.__get_user_films_by_user_id(message.chat.id)
+        if conditions:
+            condition = conditions.pop()
+            if condition in constants.CONDITION_LIST:
+                if condition == constants.RATING_CONDITION:
+                    self.bot.send_message(message.chat.id, text="Enter rating value from 0.0 to 10.0")
+                elif condition == constants.YEAR_CONDITION:
+                    self.bot.send_message(message.chat.id, "Enter release year")
+                else:
+                    self.bot.send_message(message.chat.id, f"Enter \"{condition}\"")
+            self.bot.register_next_step_handler(message, self.take_condition_value,
+                                                condition=condition,
+                                                user_films=user_films,
+                                                conditions=conditions)
+        else:
+            self.bot.clear_step_handler(message)
+            self.send_films_by_search_condition(message,
+                                                offset=0, user_films=user_films)
+
+    def take_condition_value(self, *args, **kwargs):
+        message = args[0]
+        condition: str = kwargs["condition"]
+        conditions: set[str] = kwargs["conditions"]
+        user_films = kwargs["user_films"]
+        if condition == constants.YEAR_CONDITION:
+            if not self.__is_year(message.text):
+                conditions.add(condition)
+                self.bot.send_message(message.chat.id, "Incorrect year value")
+                self.bot.register_next_step_handler(message, self.take_multiple_conditions, conditions)
+                # self.take_multiple_conditions(message, conditions)
+        user_films.last_condition[condition] = message.text
+        # self.bot.register_next_step_handler(message, self.take_multiple_conditions, conditions)
+        self.take_multiple_conditions(message, conditions)
+
+    def send_films_by_title(self, message: telebot.types.Message):
+        title = message.text.lower()
+        user_films = self.__get_user_films_by_user_id(message.chat.id)
+        if not user_films.films:
+            user_films.films = self.__film_helper.get_all_films()[0]
+        found_films = self.__film_helper.get_films_by_title(user_films.films, title)
+        if not found_films:
+            msg = msg_helper.get_no_films_found()
+            self.bot.send_message(message.chat.id, text=msg)
+            self.start(message)
+        user_films.films_desc = found_films
+        self.show_film_description(user_films.films_desc, message)
+
+    def __change_page_number(self, callback):
+        user_films = self.__get_user_films_by_user_id(callback.message.chat.id)
+        if callback.data == "next_page":
+            user_films.curr_page += 1
+        elif callback.data == "prev_page":
+            user_films.curr_page -= 1
+        elif callback.data == "last_page":
+            user_films.curr_page = user_films.last_page - 1
+        elif callback.data == "first_page":
+            user_films.curr_page = 0
+        offset = user_films.curr_page
+        self.send_films_by_search_condition(callback.message, offset=offset, user_films=user_films)
+
+    def send_popular_queries(self, message: telebot.types.Message):
+        queries = self.__film_helper.get_most_popular_queries()
+        msg = msg_helper.get_pretty_queries_message(queries)
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(constants.MAIN_MENU_BUTTON)
+        self.bot.send_message(message.chat.id, text=msg, reply_markup=markup)
+
+    def send_films_by_search_condition(self, *arg, **kwargs):
+        message = arg[0]
+        offset = kwargs["offset"]
+        user_films = kwargs["user_films"]
+        films, count = self.__get_films(user_films, offset)
+        if count > 1:
+            markup = self.show_page_buttons(count, user_films.user_id)
+            msg = msg_helper.get_films_simple_message(films)
+        else:
+            msg = msg_helper.get_no_films_found()
+            if films:
+                msg = msg_helper.get_films_simple_message(films)
+            markup = self.get_search_buttons()
+        self.bot.send_message(message.chat.id, msg, reply_markup=markup)
+
+    def show_page_buttons(self, count: int, user_id) -> telebot.types.InlineKeyboardMarkup:
+        user_films = self.__get_user_films_by_user_id(user_id)
+        markup = telebot.types.InlineKeyboardMarkup()
+        if user_films.curr_page == 0:
+            markup.row(constants.NEXT_PAGE_BUTTON, constants.LAST_PAGE_BUTTON)
+            markup.row(constants.MAIN_MENU_BUTTON, constants.SEARCH_FILM_BUTTON)
+            return markup
+        elif user_films.curr_page == count - 1:
+            markup.row(constants.FIRS_PAGE_BUTTON, constants.PREVIOUS_PAGE_BUTTON)
+            markup.row(constants.MAIN_MENU_BUTTON, constants.SEARCH_FILM_BUTTON)
+            return markup
+        else:
+            markup.row(constants.FIRS_PAGE_BUTTON, constants.PREVIOUS_PAGE_BUTTON,
+                       constants.NEXT_PAGE_BUTTON, constants.LAST_PAGE_BUTTON)
+            markup.row(constants.MAIN_MENU_BUTTON, constants.SEARCH_FILM_BUTTON)
+        return markup
+
+    def show_film_description(self, films: list[Film], message: telebot.types.Message):
+        if films:
+            if len(films) > 1:
+                photo_url, msg = msg_helper.get_film_description_message(films[0])
+                films.pop(0)
+                markup = self.get_menu_buttons()
+                markup.row(constants.NEXT_FILM_BUTTON)
+                self.bot.send_photo(message.chat.id, photo_url, caption=msg, reply_markup=markup)
+            else:
+                markup = self.get_menu_buttons()
+                photo_url, msg = msg_helper.get_film_description_message(films[0])
+                self.bot.send_photo(message.chat.id, photo_url, caption=msg, reply_markup=markup)
+
+    def show_search_menu(self, message: telebot.types.Message):
+        msg = "Please choose a search conditions"
+        markup = self.get_search_buttons()
+        self.bot.send_message(message.chat.id, text=msg, reply_markup=markup)
+
+    @staticmethod
+    def get_menu_buttons() -> telebot.types.InlineKeyboardMarkup:
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.row(constants.SEARCH_FILM_BUTTON)
+        markup.row(constants.MAIN_MENU_BUTTON)
+        return markup
+
+    @staticmethod
+    def get_search_buttons() -> telebot.types.InlineKeyboardMarkup:
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.row(constants.KEYWORD_BUTTON, constants.GENRE_YEAR_BUTTON)
+        markup.row(constants.MAIN_MENU_BUTTON)
+        return markup
+
+    def __get_user_films_by_user_id(self, user_id) -> UserFilms:
+        if self._my_films_dict.get(user_id) is None:
+            user_films = UserFilms(user_id=user_id, films=[])
+            self._my_films_dict[user_id] = user_films
+            return user_films
+        return self._my_films_dict[user_id]
+
+    def __get_films(self, user_films: UserFilms, offset) -> tuple[list[Film], int]:
+        length = len(user_films.last_condition)
+        if length < 1:
+            msg = msg_helper.get_no_search_conditions()
+            markup = self.get_search_buttons()
+            self.bot.send_message(user_films.user_id, text=msg, reply_markup=markup)
+        if length == 1:
+            condition, value = next(iter(user_films.last_condition.items()))
+            films, count = self.__film_helper.get_film_by_one_condition(condition, value, offset)
+        else:
+            films, count = self.__film_helper.get_films_by_conditions(user_films.last_condition, offset)
+        user_films.films = films
+        user_films.last_page = count
+        return films, count

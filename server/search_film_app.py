@@ -7,11 +7,11 @@ from server.dao.impl.mysql_user_query_dao_impl import MySqlUserQueryDao
 from server.dao.impl.mysql_datasource import MySqlDataSource
 from server.service.film_search_service import FilmSearchService
 from server.service.user_query_service import UserQueryService
-from server.util.logger import Logger
+from logger import Logger
 
 
 class SearchFilmApp:
-    __logger = Logger("MySqlDaoImpl").logger
+    __logger = Logger("SearchFilmApp.class", "./logs/server_app_error.log").logger
 
     def __init__(self):
         self.__datasource = None
@@ -59,7 +59,7 @@ class SearchFilmApp:
 
     def __del__(self):
         for key, db_connection in self.__connection.items():
-            self.__logger.error(f"{key} connection close")
             if db_connection.is_connected():
+                self.__logger.info(f"{key} connection close")
                 db_connection.close()
 

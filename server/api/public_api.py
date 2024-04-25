@@ -36,7 +36,7 @@ class PublicApi:
                                 year: int = 0,
                                 keyword: str = "", offset: int = 0) -> tuple[list[Film], int]:
         return self.__search_film_service.get_films_by_conditions(title=title,
-                                                                  genre=genre,
+                                                                  genres=genre,
                                                                   rating=rating,
                                                                   cast=cast,
                                                                   year=year,

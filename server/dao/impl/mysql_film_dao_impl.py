@@ -3,11 +3,11 @@ from mysql.connector import Error as MySqlError
 
 from server import mysql_queries_constant as queries
 from server.dao.film_dao_interface import FilmDaoInterface
-from server.util.logger import Logger
+from logger import Logger
 
 
 class MySqlFilmDaoImpl(FilmDaoInterface):
-    __logger = Logger("MySqlDaoImpl").logger
+    __logger = Logger("MySqlFilmDaoImpl.class", "./logs/server_app_error.log").logger
 
     def __init__(self, connection: MySQLConnectionAbstract):
         self.__connection = connection
@@ -88,7 +88,7 @@ class MySqlFilmDaoImpl(FilmDaoInterface):
         query = f"{queries.DEFAULT_CONDITION} WHERE {condition} {queries.LIMIT_CONDITION}"
         return query, args
 
-    def __execute_query(self, query: str, arg: tuple | list | None = None):
+    def __execute_query(self, query: str, arg: tuple | list | None = None) -> list:
         cursor = self.__connection.cursor()
         result = []
         try:

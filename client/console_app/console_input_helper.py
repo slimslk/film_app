@@ -111,24 +111,29 @@ def inp_cond_search(condition: str) -> dict[str: str]:
             return {}
 
 
-def input_film_page_or_film_title(films: list[Film], count, page_number) -> int:
-    print(count)
+def input_film_page_or_film_title(films: list[Film], count: int, page_number: int = 0) -> int:
     while True:
         print(messages.HASH_DELIMITER)
         output_helper.print_film_list(films)
-        page_msg = f"{messages.BLUE}{page_number + 1}/{count}{messages.RESET}"
-        if page_number == 0:
-            page_msg = f"{page_msg}  {messages.CURRENT_PAGE_RIGHT}"
-        elif page_number == count - 1:
-            page_msg = f"{messages.CURRENT_PAGE_LEFT}  {page_msg}"
+        if count < 2:
+            print(f"{messages.FILMS_FOUND_MENU_MESSAGE}")
+            command = input((f"Enter {messages.BLUE}THE TITLE OF A MOVIE{messages.RESET} from the list to"
+                             f" display the movie description or select command from menu above: "))
         else:
-            page_msg = f"{messages.CURRENT_PAGE_LEFT}  {page_msg}  {messages.CURRENT_PAGE_RIGHT:}"
-        print(f"{page_msg}")
-        print(f"{messages.FILMS_FOUND_MENU_MESSAGE}")
-        command = input(f"Enter {messages.BLUE}\"<<\"{messages.RESET}, {messages.BLUE}\"<\"{messages.RESET},"
-                        f" {messages.BLUE}\">\"{messages.RESET}, {messages.BLUE}\">>\"{messages.RESET},"
-                        f" number between {messages.BLUE}1{messages.RESET} and {messages.BLUE}{count}{messages.RESET}"
-                        f" or select command from menu above: ").lower()
+            page_msg = f"{messages.BLUE}{page_number + 1}/{count}{messages.RESET}"
+            if page_number == 0:
+                page_msg = f"{page_msg}  {messages.CURRENT_PAGE_RIGHT}"
+            elif page_number == count - 1:
+                page_msg = f"{messages.CURRENT_PAGE_LEFT}  {page_msg}"
+            else:
+                page_msg = f"{messages.CURRENT_PAGE_LEFT}  {page_msg}  {messages.CURRENT_PAGE_RIGHT:}"
+            print(f"{page_msg}")
+            print(f"{messages.FILMS_FOUND_MENU_MESSAGE}")
+            command = input(f"Enter {messages.BLUE}\"<<\"{messages.RESET}, {messages.BLUE}\"<\"{messages.RESET},"
+                            f" {messages.BLUE}\">\"{messages.RESET}, {messages.BLUE}\">>\"{messages.RESET},"
+                            f" number between {messages.BLUE}1{messages.RESET} and {messages.BLUE}{count}{messages.RESET},"
+                            f" {messages.BLUE}THE TITLE OF A MOVIE{messages.RESET} from the list to"
+                            f" display the movie description or select command from menu above: ").lower()
         if not command:
             continue
         elif command == "search":
@@ -156,7 +161,7 @@ def input_film_page_or_film_title(films: list[Film], count, page_number) -> int:
                 continue
             return int(command) - 1
         elif command:
-            found_films = search_film_by_title(films, command)
+            found_films = search_film_by_title(films, command.lower())
             input_film_title(found_films, command)
 
 
