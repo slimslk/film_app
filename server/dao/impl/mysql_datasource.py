@@ -12,11 +12,11 @@ class MySqlDataSource(DatasourceInterface):
         self.__dbconfig = {"user": user, "password": password, "host": host, "port": port}
 
     def connect_to_db(self, db_name: str) -> MySQLConnectionAbstract:
-        connection = None
         try:
             self.__dbconfig["database"] = db_name
             connection = connect(**self.__dbconfig)
             self.__logger.info(f"Connection to the {db_name} is established")
         except MySqlError as err:
             self.__logger.error(f"Unable to create a connection to the database.\n {err}")
+            raise MySqlError()
         return connection

@@ -1,0 +1,20 @@
+26-04-2024 09:11:44 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 2003 (HY000): Can't connect to MySQL server on 'localhost:3306' (61)
+26-04-2024 09:11:44 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 2003 (HY000): Can't connect to MySQL server on 'localhost:3307' (61)
+26-04-2024 09:17:17 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 2003 (HY000): Can't connect to MySQL server on 'localhost:3306' (61)
+26-04-2024 09:22:26 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 2003 (HY000): Can't connect to MySQL server on 'localhost:3306' (61)
+26-04-2024 09:37:23 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 2003 (HY000): Can't connect to MySQL server on 'localhost:3306' (61)
+26-04-2024 09:39:48 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 1045 (28000): Access denied for user 'rooot-groot'@'192.168.65.1' (using password: YES)
+26-04-2024 09:41:33 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 1045 (28000): Access denied for user 'rooot-groot'@'192.168.65.1' (using password: YES)
+26-04-2024 09:41:46 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 1045 (28000): Access denied for user 'rooot-groot'@'192.168.65.1' (using password: YES)
+26-04-2024 09:42:30 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 1045 (28000): Access denied for user 'rooot-groot'@'192.168.65.1' (using password: YES)
+26-04-2024 09:43:13 | MySqlDatasource.class | ERROR: Unable to create a connection to the database.
+ 1045 (28000): Access denied for user 'root-groot'@'192.168.65.1' (using password: YES)

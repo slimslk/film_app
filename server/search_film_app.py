@@ -1,5 +1,6 @@
 from os import getenv
 from dotenv import load_dotenv
+from mysql.connector import Error as MySqlError
 
 from server.api.public_api import PublicApi
 from server.dao.impl.mysql_film_dao_impl import MySqlFilmDaoImpl
@@ -36,30 +37,32 @@ class SearchFilmApp:
         query_username = getenv("QUERY_DB_USERNAME")
         query_password = getenv("QUERY_DB_PASSWORD")
         query_database = getenv("QUERY_DB_DATABASE")
+        try:
+            self.__film_datasource = MySqlDataSource(host=film_host, port=film_port,
+                                                     user=film_username, password=film_password)
+            self.__query_datasource = MySqlDataSource(host=query_host, port=query_port,
+                                                      user=query_username, password=query_password)
 
-        self.__film_datasource = MySqlDataSource(host=film_host, port=film_port,
-                                                 user=film_username, password=film_password)
-        self.__query_datasource = MySqlDataSource(host=query_host, port=query_port,
-                                                  user=query_username, password=query_password)
+            self.__connection = {"film_db": self.__film_datasource.connect_to_db(film_database),
+                                 "query_db": self.__query_datasource.connect_to_db(query_database)}
 
-        self.__connection = {"film_db": self.__film_datasource.connect_to_db(film_database),
-                             "query_db": self.__query_datasource.connect_to_db(query_database)}
+            self.__user_query_dao = MySqlUserQueryDao(self.__connection["query_db"])
+            self.__user_query_service = UserQueryService(self.__user_query_dao)
 
-        self.__user_query_dao = MySqlUserQueryDao(self.__connection["query_db"])
-        self.__user_query_service = UserQueryService(self.__user_query_dao)
+            self.__film_dao = MySqlFilmDaoImpl(self.__connection["film_db"])
+            self.__film_service = FilmSearchService(self.__film_dao, self.__user_query_service)
 
-        self.__film_dao = MySqlFilmDaoImpl(self.__connection["film_db"])
-        self.__film_service = FilmSearchService(self.__film_dao, self.__user_query_service)
-
-        self.__public_api = PublicApi(self.__film_service, self.__user_query_service)
+            self.__public_api = PublicApi(self.__film_service, self.__user_query_service)
+        except MySqlError:
+            exit()
 
     @property
     def public_api(self):
         return self.__public_api
 
     def __del__(self):
-        for key, db_connection in self.__connection.items():
-            if db_connection.is_connected():
-                self.__logger.info(f"{key} connection close")
-                db_connection.close()
-
+        if self.__connection is not None:
+            for key, db_connection in self.__connection.items():
+                if db_connection.is_connected():
+                    self.__logger.info(f"{key} connection close")
+                    db_connection.close()

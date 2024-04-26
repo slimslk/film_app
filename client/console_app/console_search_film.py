@@ -1,7 +1,6 @@
 import client.console_app.console_input_helper as helper
 import client.console_app.messages_constant as messages
 import client.console_app.console_output_helper as output_helper
-# from client.console_app.console_app_logger import Logger
 from server.api.public_api import PublicApi
 from server.entity.film_model import Film
 from enum import Enum
@@ -69,8 +68,9 @@ class ConsoleSearchFilmApp:
                     films, count = self.__get_films_by_query(cur_search_con, page_number)
             else:
                 self.__print_film_list(films)
-                helper.input_film_page_or_film_title(films, count)
-                # raise NotImplementedError()
+                page_number = helper.input_film_page_or_film_title(films, count)
+                if page_number in [-1, -2]:
+                    break
 
     def __get_films_by_query(self, queries: dict[str: str | int | float] = None, page: int = 0) -> tuple[list[Film], int]:
         if len(queries) == 1:
@@ -97,10 +97,6 @@ class ConsoleSearchFilmApp:
                 films, count = self.__public_api.get_films_by_year(value, page)
                 return films, count
         if len(queries) > 1:
-            # conditions = {}
-            # for key, value in queries.items():
-            #     if key in [e.value for e in Query]:
-            #         conditions[key] = value
             film, count = self.__public_api.get_films_by_conditions(**queries, offset=page)
             return film, count
 
@@ -114,7 +110,8 @@ class ConsoleSearchFilmApp:
     def __print_film_list(films: list[Film]):
         print(messages.LINE_DELIMITER)
         for film in films:
-            print(f"{film.title[:60]:<60} | {str(film.genres):^50} | {film.year:^ 8} | {film.imdb_rating:^5} | {film.cast}")
+            print(f"{film.title[:60]:<60} | {str(film.genres):^50} | {film.year:^ 8} |"
+                  f" {film.imdb_rating:^5} | {film.cast}")
         print(messages.LINE_DELIMITER)
 
     @staticmethod

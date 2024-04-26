@@ -44,7 +44,7 @@ class FilmSearchService:
     def get_films_by_keyword(self, keyword: str, offset: int = 0) -> tuple[list[Film], int]:
         film_data = self.__film_dao.get_films_by_keyword(keyword, offset)
         if not offset:
-            self.__user_query_service.insert_user_query(keyword=keyword)
+            self.__user_query_service.insert_user_query(keyword=keyword.lower())
         return FilmSearchService.__get_films_with_pages(film_data)
 
     def get_films_by_year(self, year: int, offset: int = 0) -> tuple[list[Film], int]:

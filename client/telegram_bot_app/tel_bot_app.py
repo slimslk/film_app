@@ -15,6 +15,11 @@ class TelegramSearchFilm:
     __logger = Logger("TelegramSearchFilm.class", "./logs/telegram_app_error.log").logger
 
     def __init__(self, public_api: PublicApi):
+        self.stop_bot = None
+        self.msg_listener = None
+        self.callback = None
+        self.popular_queries = None
+        self.start = None
         try:
             self.__public_api = public_api
             load_dotenv("./client/telegram_bot_app/.env_tgbot")
@@ -40,7 +45,7 @@ class TelegramSearchFilm:
         self.start = self.bot.message_handler(commands=["start"])(self.start_command)
         self.popular_queries = self.bot.message_handler(commands=["queries"])(self.send_popular_queries)
         self.callback = self.bot.callback_query_handler(func=lambda callback: True)(self.callback_command)
-        self.msg_listner = self.bot.message_handler(func=lambda msg: True)(self.send_films_by_title)
+        self.msg_listener = self.bot.message_handler(func=lambda msg: True)(self.send_films_by_title)
 
     def start_command(self, message: telebot.types.Message):
         chat_id = message.chat.id
@@ -50,26 +55,26 @@ class TelegramSearchFilm:
         self._my_films_dict[message.chat.id] = user_films
         back_msg = msg_helper.get_films_simple_message(films)
         self.bot.send_message(chat_id=chat_id, text=back_msg)
-        self.bot.send_message(chat_id=chat_id, text="Enter name of the film to view the movie description",
+        self.bot.send_message(chat_id=chat_id, text=constants.VIEW_FILM_DESCRIPTION_MSG,
                               reply_markup=markup)
 
     def callback_command(self, callback):
-        if callback.data == "get_common_queries":
+        if callback.data == constants.GET_POPULAR_QUERIES:
             self.send_popular_queries(callback.message)
-        if callback.data == "main_menu":
+        if callback.data == constants.MAIN_MENU:
             self.start(callback.message)
-        if callback.data == "next_film":
+        if callback.data == constants.NEXT_FILM:
             user_films = self.__get_user_films_by_user_id(callback.message.chat.id)
             self.show_film_description(user_films.films_desc, callback.message)
-        if callback.data == "search":
+        if callback.data == constants.SEARCH_FILM:
             self.show_search_menu(callback.message)
         if callback.data in constants.CONDITION_LIST:
             condition = {callback.data}
             self.__reset_user_films_data_and_take_values(callback.message, condition)
         if callback.data == constants.GENRE_YEAR_CONDITION:
-            condition = {"genre", "year"}
+            condition = {constants.GENRE_CONDITION, constants.YEAR_CONDITION}
             self.__reset_user_films_data_and_take_values(callback.message, condition)
-        if callback.data in ["next_page", "last_page", "prev_page", "first_page"]:
+        if callback.data in [constants.NEXT_PAGE, constants.LAST_PAGE, constants.PREVIOUS_PAGE, constants.FIRST_PAGE]:
             self.__change_page_number(callback)
 
     def __reset_user_films_data_and_take_values(self, message: telebot.types.Message, condition):
@@ -93,9 +98,9 @@ class TelegramSearchFilm:
             condition = conditions.pop()
             if condition in constants.CONDITION_LIST:
                 if condition == constants.RATING_CONDITION:
-                    self.bot.send_message(message.chat.id, text="Enter rating value from 0.0 to 10.0")
+                    self.bot.send_message(message.chat.id, text=constants.RATING_FROM_TO_MSG)
                 elif condition == constants.YEAR_CONDITION:
-                    self.bot.send_message(message.chat.id, "Enter release year")
+                    self.bot.send_message(message.chat.id, constants.ENTER_RELEASE_YEAR_MSG)
                 else:
                     self.bot.send_message(message.chat.id, f"Enter \"{condition}\"")
             self.bot.register_next_step_handler(message, self.take_condition_value,
@@ -115,11 +120,9 @@ class TelegramSearchFilm:
         if condition == constants.YEAR_CONDITION:
             if not self.__is_year(message.text):
                 conditions.add(condition)
-                self.bot.send_message(message.chat.id, "Incorrect year value")
+                self.bot.send_message(message.chat.id, constants.INCORRECT_YEAR_VALUE_MSG)
                 self.bot.register_next_step_handler(message, self.take_multiple_conditions, conditions)
-                # self.take_multiple_conditions(message, conditions)
         user_films.last_condition[condition] = message.text
-        # self.bot.register_next_step_handler(message, self.take_multiple_conditions, conditions)
         self.take_multiple_conditions(message, conditions)
 
     def send_films_by_title(self, message: telebot.types.Message):
@@ -129,7 +132,7 @@ class TelegramSearchFilm:
             user_films.films = self.__film_helper.get_all_films()[0]
         found_films = self.__film_helper.get_films_by_title(user_films.films, title)
         if not found_films:
-            msg = msg_helper.get_no_films_found()
+            msg = constants.FILM_NOT_FOUND_MSG
             self.bot.send_message(message.chat.id, text=msg)
             self.start(message)
         user_films.films_desc = found_films
@@ -137,13 +140,13 @@ class TelegramSearchFilm:
 
     def __change_page_number(self, callback):
         user_films = self.__get_user_films_by_user_id(callback.message.chat.id)
-        if callback.data == "next_page":
+        if callback.data == constants.NEXT_PAGE:
             user_films.curr_page += 1
-        elif callback.data == "prev_page":
+        elif callback.data == constants.PREVIOUS_PAGE:
             user_films.curr_page -= 1
-        elif callback.data == "last_page":
+        elif callback.data == constants.LAST_PAGE:
             user_films.curr_page = user_films.last_page - 1
-        elif callback.data == "first_page":
+        elif callback.data == constants.FIRST_PAGE:
             user_films.curr_page = 0
         offset = user_films.curr_page
         self.send_films_by_search_condition(callback.message, offset=offset, user_films=user_films)
@@ -164,7 +167,7 @@ class TelegramSearchFilm:
             markup = self.show_page_buttons(count, user_films.user_id)
             msg = msg_helper.get_films_simple_message(films)
         else:
-            msg = msg_helper.get_no_films_found()
+            msg = constants.FILM_NOT_FOUND_MSG
             if films:
                 msg = msg_helper.get_films_simple_message(films)
             markup = self.get_search_buttons()
@@ -201,7 +204,7 @@ class TelegramSearchFilm:
                 self.bot.send_photo(message.chat.id, photo_url, caption=msg, reply_markup=markup)
 
     def show_search_menu(self, message: telebot.types.Message):
-        msg = "Please choose a search conditions"
+        msg = constants.CHOOSE_SEARCH_CONDITION_MSG
         markup = self.get_search_buttons()
         self.bot.send_message(message.chat.id, text=msg, reply_markup=markup)
 
@@ -229,7 +232,7 @@ class TelegramSearchFilm:
     def __get_films(self, user_films: UserFilms, offset) -> tuple[list[Film], int]:
         length = len(user_films.last_condition)
         if length < 1:
-            msg = msg_helper.get_no_search_conditions()
+            msg = constants.NO_SEARCH_CONDITIONS_MSG
             markup = self.get_search_buttons()
             self.bot.send_message(user_films.user_id, text=msg, reply_markup=markup)
         if length == 1:
