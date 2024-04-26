@@ -67,7 +67,6 @@ class ConsoleSearchFilmApp:
                         break
                     films, count = self.__get_films_by_query(cur_search_con, page_number)
             else:
-                self.__print_film_list(films)
                 page_number = helper.input_film_page_or_film_title(films, count)
                 if page_number in [-1, -2]:
                     break
